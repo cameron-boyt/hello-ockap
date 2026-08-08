@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ---- build ----------------------------------------------------------------
-FROM python:3.13-slim AS build
+FROM python:3.14-slim AS build
 COPY --from=ghcr.io/astral-sh/uv:0.11.23 /uv /bin/uv
 
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
@@ -18,7 +18,7 @@ RUN uv sync --locked --no-dev
 # ---- runtime --------------------------------------------------------------
 # slim, deliberately NOT distroless: no shell means no HealthCmd, and the health
 # check is how deployment knows whether the release worked.
-FROM python:3.13-slim
+FROM python:3.14-slim
 
 RUN useradd --create-home --uid 10001 app
 
