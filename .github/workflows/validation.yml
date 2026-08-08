@@ -12,6 +12,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0   # gitleaks scans a commit RANGE; the default shallow checkout
+                           # may not contain the PR's base/parent commit
       - uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}   # the action requires it; the built-in
@@ -25,6 +28,7 @@ jobs:
       - run: uv run ruff format --check .
 
   test:
+    needs: quality
     name: Run tests
     runs-on: ubuntu-latest
     steps:
@@ -35,6 +39,7 @@ jobs:
                                      # fails on an argparse error naming no dependency
 
   build:
+    needs: test
     name: Build validation image
     runs-on: ubuntu-latest
     steps:
