@@ -1,0 +1,47 @@
+name: promote
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true        # BOTH are needed; depth alone leaves tags missing
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve the attested digest for this commit
+        id: d
+        run: |
+          IMG=ghcr.io/${{ github.repository }}
+          D=$(docker buildx imagetools inspect "$IMG:sha-${{ github.sha }}" \
+                --format '{{.Manifest.Digest}}')
+          echo "digest=$D" >> "$GITHUB_OUTPUT"
+
+      - name: Verify the attestation before naming it a release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh attestation verify \
+            "oci://ghcr.io/${{ github.repository }}@${{ steps.d.outputs.digest }}" \
+            --repo ${{ github.repository }} \
+            --deny-self-hosted-runners
+
+      - name: Add the version tag to the SAME digest
+        run: |
+          docker buildx imagetools create --prefer-index=false \
+            --tag ghcr.io/${{ github.repository }}:${{ github.ref_name }} \
+            ghcr.io/${{ github.repository }}@${{ steps.d.outputs.digest }}
