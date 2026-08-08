@@ -1,8 +1,12 @@
-import json, os, sys
+import json
+import os
+import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+
 def log(**kw):
-    print(json.dumps(kw), file=sys.stdout, flush=True)   # flush: journald reads the pipe
+    print(json.dumps(kw), file=sys.stdout, flush=True)  # flush: journald reads the pipe
+
 
 class H(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -17,10 +21,13 @@ class H(BaseHTTPRequestHandler):
     def log_message(self, fmt, *a):
         log(msg=fmt % a, path=self.path)
 
+
 if __name__ == "__main__":
     # 0.0.0.0, NOT 127.0.0.1. Inside the container, 127.0.0.1 is the container's own
     # loopback. PublishPort forwards to the container's external address, so a service
     # bound to loopback publishes a port that refuses every connection. It still works
     # under `podman run --network host` on your laptop, which is exactly why this
     # mistake survives every local test and first appears at stage 3.
-    ThreadingHTTPServer(("0.0.0.0", int(os.environ.get("PORT", "8000"))), H).serve_forever()
+    ThreadingHTTPServer(
+        ("0.0.0.0", int(os.environ.get("PORT", "8000"))), H
+    ).serve_forever()
