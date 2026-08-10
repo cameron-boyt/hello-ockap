@@ -22,9 +22,10 @@ FROM python:3.14-slim
 
 RUN useradd --create-home --uid 10001 app
 
-# Stage 5 adds one line here — `RUN install -d -o app -g app /var/lib/hello-ockap` — when the
-# service becomes stateful. It is not here yet on purpose: there is no volume to mount until
-# then, and a mount path created for a volume that does not exist teaches nothing.
+# Podman copies ownership up from the image only when the path already exists there.
+# Without this, a fresh named volume arrives root-owned, uid 10001 cannot write to it,
+# and the failure reads like an application bug rather than a mount problem.
+RUN install -d -o app -g app /var/lib/hello-ockap
 
 WORKDIR /app
 COPY --from=build --chown=app:app /app /app
