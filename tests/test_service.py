@@ -5,8 +5,8 @@ from http.server import ThreadingHTTPServer
 
 import pytest
 
-from hello_ockap.__main__ import H
 from hello_ockap import __main__ as main
+from hello_ockap.__main__ import H
 
 
 @pytest.fixture
