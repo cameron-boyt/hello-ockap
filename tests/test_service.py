@@ -6,6 +6,7 @@ from http.server import ThreadingHTTPServer
 import pytest
 
 from hello_ockap.__main__ import H
+from hello_ockap import __main__ as main
 
 
 @pytest.fixture
@@ -30,3 +31,22 @@ def test_unknown_path_is_404(server):
     conn = HTTPConnection(*server)
     conn.request("GET", "/nope")
     assert conn.getresponse().status == 404
+
+
+@pytest.fixture(autouse=True)
+def isolated_db(tmp_path, monkeypatch):
+    # Patch the MODULE GLOBAL, not the environment. DB_PATH is read once at import time,
+    # so monkeypatch.setenv() inside a test happens far too late to have any effect —
+    # and the test would then write to /var/lib/hello-ockap, pass on your machine, and
+    # fail in CI where that path does not exist.
+    monkeypatch.setattr(main, "DB_PATH", str(tmp_path / "test.db"))
+
+
+def test_visit_increments_the_count(server):
+    conn = HTTPConnection(*server)
+    conn.request("POST", "/visit")
+    assert conn.getresponse().status == 201
+
+    conn = HTTPConnection(*server)
+    conn.request("GET", "/visits")
+    assert json.loads(conn.getresponse().read()) == {"count": 1}
